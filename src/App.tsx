@@ -4,11 +4,13 @@ import { weatherApi } from './api/weather';
 import { geocoderApi } from './api/geocoder';
 import { WeatherResponse } from './interfaces/weather.interface';
 import { WeatherCard } from './WeatherCard';
+import { WeatherCardDefault } from './WeatherCardDefault';
 
 function App() {
   const [fav, setFav] = useState(false);
   const [paris, setParis] = useState<WeatherResponse | null>(null);
   const [newYork, setNewYork] = useState<WeatherResponse | null>(null);
+  const [buenosAires, setBuenosAires] = useState<WeatherResponse | null>(null);
 
   useEffect(() => {
     const callApi = async () => {
@@ -17,14 +19,19 @@ function App() {
         setParis(parisData.data);
         const newYorkData = await weatherApi.getWeather(40.71, -74.01);
         setNewYork(newYorkData.data);
+        const BuenosAiresData = await weatherApi.getWeather(
+          -34.9206797,
+          -57.9537638
+        );
+        setBuenosAires(BuenosAiresData.data);
       } catch (error) {
         console.log(error);
       }
     };
     callApi();
-    // geocoderApi.getCity(5).then((res) => {
-    //   console.log(res);
-    // });
+    geocoderApi.getCity('Buenos Aires', 10).then((res) => {
+      console.log(res.data);
+    });
   }, []);
   return (
     <>
@@ -33,7 +40,7 @@ function App() {
           <div className='flex flex-row justify-center p-2 bg-gradient-to-tl from-slate-900 via-slate-800 to-slate-900 h-min w-full rounded-xl  items-center gap-4 border-l border-r border-white/10 shadow-xl'>
             <Logo /> <h1 className='text-4xl text-white font-thin'>Weather</h1>
           </div>
-          <div className='flex flex-row w-full h-min gap-2'>
+          <div className='flex flex-row w-full h-min gap-2 mb-2'>
             <input
               type='text'
               placeholder='Search for a city'
@@ -43,8 +50,14 @@ function App() {
               Search
             </button>
           </div>
-          {paris && <WeatherCard country={paris} />}
-          {newYork && <WeatherCard country={newYork} />}
+
+          {paris ? <WeatherCard country={paris} /> : <WeatherCardDefault />}
+          {newYork ? <WeatherCard country={newYork} /> : <WeatherCardDefault />}
+          {buenosAires ? (
+            <WeatherCard country={buenosAires} />
+          ) : (
+            <WeatherCardDefault />
+          )}
         </div>
       </div>
     </>

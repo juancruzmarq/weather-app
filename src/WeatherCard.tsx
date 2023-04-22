@@ -22,6 +22,9 @@ const days = [
 export const WeatherCard: React.FC<WeatherCardProps> = ({ country }) => {
   const [fav, setFav] = useState(false);
   const [diaOnoche, setDiaOnoche] = useState(false);
+  const [weekWeather, setWeekWeather] = useState<
+    { day: string; min: number; max: number } | null | undefined
+  >(null);
   const [icon, setIcon] = useState<string>();
   const handleFav = () => {
     setFav(!fav);
@@ -54,9 +57,37 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({ country }) => {
     return hora >= 6 && hora <= 18;
   }
   useEffect(() => {
-    console.log(country);
     setDaysWeather(getDaysOfWeek());
     setDiaOnoche(itsDay(country?.list?.[0].dt) || false);
+    // invertir la lista
+    const list = country?.list?.reverse();
+    // obtener el promedio de la temperatura minima y maxima de cada dia
+    const result = list?.reduce((acc, item) => {
+      const fecha = new Date(item.dt * 1000);
+      const dia = fecha.getDay();
+      if (!acc[dia]) {
+        acc[dia] = {
+          min: item.main.temp_min,
+          max: item.main.temp_max,
+          count: 1, // agregamos un contador para calcular el promedio
+        };
+      } else {
+        acc[dia].min += item.main.temp_min;
+        acc[dia].max += item.main.temp_max;
+        acc[dia].count += 1;
+      }
+      return acc;
+    }, {});
+
+    // calcular el promedio para cada día y agregarlo al resultado
+    Object.keys(result).forEach((dia) => {
+      const { min, max, count } = result[dia];
+      result[dia] = {
+        min: min / count,
+        max: max / count,
+      };
+    });
+    console.log(result);
   }, []);
 
   return (
@@ -77,7 +108,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({ country }) => {
           }
         />
       </div>
-      <div className='w-8 h-8 rounded-full text-white/30 text-2xl absolute bottom-[10px] right-[10px]'>
+      <div className='w-8 h-8 rounded-full text-red-400/40 text-2xl absolute bottom-[10px] right-[10px]'>
         <button className='w-full h-full' onClick={handleFav}>
           {fav ? <AiOutlineHeart /> : <AiFillHeart />}
         </button>
@@ -88,8 +119,8 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({ country }) => {
         </div>
       </div>
       <div className='grid grid-cols-2 grid-rows-5 text-xs font-extralight border-r border-white/20 pr-4'>
-        {daysWeather.map((day, index) => (
-          <Day key={index} day={day} min={10} max={10} />
+        {daysWeather?.map((day, index) => (
+          <Day key={index} day={day} min={12} max={10} />
         ))}
       </div>
       <div className='grid grid-rows-4 grid-cols-1 justify-center text-center'>
