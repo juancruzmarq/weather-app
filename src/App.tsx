@@ -5,21 +5,70 @@ import { geocoderApi } from './api/geocoder';
 import { WeatherResponse } from './interfaces/weather.interface';
 import { WeatherCard } from './WeatherCard';
 import { WeatherCardDefault } from './WeatherCardDefault';
+import { CurrentWeatherResponse } from './interfaces/currentWeather.interface';
+import useDebounce from './hooks/useDebounce';
+import useThrottle from './hooks/useThrottle';
+import Flag from 'react-world-flags';
+import SearchCard from './SearchCard';
+import { LocationResponse } from './interfaces/location.interface';
 
 function App() {
   const [fav, setFav] = useState(false);
-  const [paris, setParis] = useState<WeatherResponse | null>(null);
-  const [newYork, setNewYork] = useState<WeatherResponse | null>(null);
-  const [buenosAires, setBuenosAires] = useState<WeatherResponse | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [results, setResults] = useState<LocationResponse[] | null>(null);
+  const [city, setCity] = useState<LocationResponse | null>(null);
+  const [parisForecastData, setParisForecastData] =
+    useState<WeatherResponse | null>(null);
+  const [paris, setParis] = useState<CurrentWeatherResponse | null>(null);
+  const [query, setQuery] = useState<string>('');
+
+  const [newYorkForecastData, setNewYorkForecastData] =
+    useState<WeatherResponse | null>(null);
+  const [newYork, setNewYork] = useState<CurrentWeatherResponse | null>(null);
+
+  const [buenosAiresForecastData, setBuenosAiresForecastData] =
+    useState<WeatherResponse | null>(null);
+  const [buenosAires, setBuenosAires] = useState<CurrentWeatherResponse | null>(
+    null
+  );
+
+  const handleSearch = async () => {
+    const results = await geocoderApi.getCity(query, 7);
+    console.log(results.data);
+    setResults(results.data);
+  };
 
   useEffect(() => {
     const callApi = async () => {
       try {
-        const parisData = await weatherApi.getWeather(48.8534951, 2.3483915);
-        setParis(parisData.data);
-        const newYorkData = await weatherApi.getWeather(40.71, -74.01);
-        setNewYork(newYorkData.data);
-        const BuenosAiresData = await weatherApi.getWeather(
+        const parisForecast = await weatherApi.getWeather(
+          48.8534951,
+          2.3483915
+        );
+        setParisForecastData(parisForecast.data);
+
+        const parisCurrent = await weatherApi.getCurrentWeather(
+          48.8534951,
+          2.3483915
+        );
+        setParis(parisCurrent.data);
+
+        const newYorkForecast = await weatherApi.getWeather(40.71, -74.01);
+        setNewYorkForecastData(newYorkForecast.data);
+
+        const newYorkCurrent = await weatherApi.getCurrentWeather(
+          40.71,
+          -74.01
+        );
+        setNewYork(newYorkCurrent.data);
+        console.log(newYorkCurrent.data);
+
+        const buenosAiresForecast = await weatherApi.getWeather(
+          -34.9206797,
+          -57.9537638
+        );
+        setBuenosAiresForecastData(buenosAiresForecast.data);
+        const BuenosAiresData = await weatherApi.getCurrentWeather(
           -34.9206797,
           -57.9537638
         );
@@ -28,10 +77,7 @@ function App() {
         console.log(error);
       }
     };
-    callApi();
-    geocoderApi.getCity('Buenos Aires', 10).then((res) => {
-      console.log(res.data);
-    });
+    // callApi();
   }, []);
   return (
     <>
@@ -42,19 +88,36 @@ function App() {
           </div>
           <div className='flex flex-row w-full h-min gap-2 mb-2'>
             <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
               type='text'
               placeholder='Search for a city'
               className='text-md rounded-md w-3/5 p-2 border-b border-r font-thin border-gray-300/20 shadow-xl text-white bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 placeholder:text-white/30 '
             />
-            <button className='text-md rounded-md w-2/5  border-r border-b font-thin border-gray-300/20 shadow-xl text-white bg-gradient-to-r'>
+            <button
+              onClick={handleSearch}
+              className='text-md rounded-md w-2/5  border-r border-b font-thin border-gray-300/20 shadow-xl text-white bg-gradient-to-r'
+            >
               Search
             </button>
           </div>
+          {results && <SearchCard results={results} setCity={setCity} />}
 
-          {paris ? <WeatherCard country={paris} /> : <WeatherCardDefault />}
-          {newYork ? <WeatherCard country={newYork} /> : <WeatherCardDefault />}
-          {buenosAires ? (
-            <WeatherCard country={buenosAires} />
+          {parisForecastData && paris ? (
+            <WeatherCard forecast={parisForecastData} current={paris} />
+          ) : (
+            <WeatherCardDefault />
+          )}
+          {newYorkForecastData && newYork ? (
+            <WeatherCard forecast={newYorkForecastData} current={newYork} />
+          ) : (
+            <WeatherCardDefault />
+          )}
+          {buenosAiresForecastData && buenosAires ? (
+            <WeatherCard
+              forecast={buenosAiresForecastData}
+              current={buenosAires}
+            />
           ) : (
             <WeatherCardDefault />
           )}
