@@ -6,13 +6,13 @@ import { Day } from './Day';
 import { WeatherResponse } from './interfaces/weather.interface';
 import { Iconos } from './Iconos';
 import { CurrentWeatherResponse } from './interfaces/currentWeather.interface';
-import { Favourites } from './App';
+import { FavouriteData, Favourites } from './App';
 
 interface WeatherCardProps {
   forecast: WeatherResponse;
   current: CurrentWeatherResponse;
   show: boolean;
-  setFavourite: (lat: number, lon: number) => void;
+  setFavourite: (data: FavouriteData) => void;
 }
 const days = [
   'Sunday',
@@ -102,32 +102,29 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
   }, []);
 
   function handleIsFav() {
-    const favs = window.localStorage.getItem('fav');
-    if (favs) {
-      const favsArray = JSON.parse(favs) as Favourites[];
-      const isFav = favsArray.find(
-        (fav) =>
-          fav.lat === forecast.city.coord.lat &&
-          fav.lon === forecast.city.coord.lon
-      );
-      if (isFav) {
-        setFav(true);
-      } else {
-        setFav(false);
-      }
+    const favs = JSON.parse(localStorage.getItem('fav') || '[]');
+    const found = favs.find((fav: Favourites) => {
+      return fav.lat === current?.coord.lat && fav.lon === current?.coord.lon;
+    });
+    if (found) {
+      setFav(true);
+    } else {
+      setFav(false);
     }
   }
 
   function handleFav() {
-    setFavourite(forecast.city.coord.lat, forecast.city.coord.lon);
-    handleIsFav();
+    setFavourite({
+      current,
+      weather: forecast,
+    });
   }
 
   return (
     <div
       className={`${
-        show ? 'blur-sm opacity-25' : null
-      } grid transition-all delay-300 grid-cols-2 p-4  w-full bg-gradient-to-br rounded-md shadow-xl border-r border-b border-white/10 relative shadow-gray-900/40`}
+        show ? 'blur-sm ' : null
+      } grid transition-all delay-300  grid-cols-2 p-4  w-full bg-gradient-to-br rounded-md shadow-xl border-r border-b border-white/10 relative shadow-gray-900/40`}
     >
       <div
         className='w-10 h-10

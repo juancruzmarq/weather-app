@@ -5,7 +5,7 @@ import { geocoderApi } from './api/geocoder';
 import { WeatherResponse } from './interfaces/weather.interface';
 import { WeatherCard } from './WeatherCard';
 import { CurrentWeatherResponse } from './interfaces/currentWeather.interface';
-
+import { AiOutlineHeart } from 'react-icons/ai';
 import SearchCard from './SearchCard';
 import { LocationResponse } from './interfaces/location.interface';
 
@@ -14,7 +14,7 @@ export interface Favourites {
   lon: number;
 }
 
-interface FavouriteData {
+export interface FavouriteData {
   weather: WeatherResponse;
   current: CurrentWeatherResponse;
 }
@@ -52,25 +52,47 @@ function App() {
     setResults(null);
   };
 
-  const handleSetFavourite = (lat: number, lon: number) => {
+  const handleSetFavourite = (data: FavouriteData) => {
     const favs = window.localStorage.getItem('fav');
     if (favs) {
-      const favsParsed = JSON.parse(favs);
-      favsParsed.find((fav: Favourites) => fav.lat === lat && fav.lon === lon)
-        ? favsParsed.splice(
-            favsParsed.findIndex(
-              (fav: Favourites) => fav.lat === lat && fav.lon === lon
-            ),
-            1
-          )
-        : favsParsed.push({ lat, lon });
-      window.localStorage.setItem('fav', JSON.stringify(favsParsed));
-      setFavourites(favsParsed);
+      const favsParsed: Favourites[] = JSON.parse(favs);
+      const exists = favsParsed.find(
+        (fav) =>
+          fav.lat === data.current.coord.lat &&
+          fav.lon === data.current.coord.lon
+      );
+      if (!exists) {
+        const newFav = [...favsParsed, data.current.coord];
+        window.localStorage.setItem('fav', JSON.stringify(newFav));
+        setFavourites(newFav);
+        setFavouriteData((prev) => {
+          if (prev) {
+            return [...prev, data];
+          }
+          return [data];
+        });
+      } else {
+        const newFav = favsParsed.filter(
+          (fav) =>
+            fav.lat !== data.current.coord.lat &&
+            fav.lon !== data.current.coord.lon
+        );
+        window.localStorage.setItem('fav', JSON.stringify(newFav));
+        setFavourites(newFav);
+        setFavouriteData((prev) => {
+          if (prev) {
+            return prev.filter(
+              (favData) =>
+                favData.current.coord.lat !== data.current.coord.lat &&
+                favData.current.coord.lon !== data.current.coord.lon
+            );
+          }
+          return null;
+        });
+      }
     } else {
-      const favs: Favourites[] = [];
-      favs.push({ lat, lon });
-      window.localStorage.setItem('fav', JSON.stringify(favs));
-      setFavourites(favs);
+      window.localStorage.setItem('fav', JSON.stringify([data.current.coord]));
+      setFavourites([data.current.coord]);
     }
   };
 
@@ -118,8 +140,8 @@ function App() {
 
   return (
     <>
-      <div className=' flex justify-center min-h-screen w-screen bg-gradient-to-tl from-slate-900 via-slate-800 to-slate-900 bg-slate-200 '>
-        <div className='max-w-md md:bg-none flex flex-col bg-gradient-to-tl from-slate-900 via-slate-800 to-slate-900 m-5 w-full rounded-xl gap-4'>
+      <div className='whitespace-nowrap overflow-auto scrollbar-hide flex justify-center min-h-screen max-h-screen w-screen bg-gradient-to-tl from-slate-900 via-slate-800 to-slate-900 bg-slate-200 '>
+        <div className='max-w-md bg-none flex flex-col m-5 w-full rounded-xl gap-4'>
           <div className='flex flex-row justify-center p-2 bg-gradient-to-tl from-slate-900 via-slate-800 to-slate-900 h-min w-full rounded-xl  items-center gap-4 border-l border-r border-white/10 shadow-xl'>
             <Logo /> <h1 className='text-4xl text-white font-thin'>Weather</h1>
           </div>
@@ -158,7 +180,12 @@ function App() {
               show={showSearch}
             />
           ) : null}
-
+          <div className='border-b border-white/20 flex flex-row text-center justify-items-center align-bottom items-center gap-2 justify-start'>
+            <h1 className='text-xl text-white font-thin mb-2'>Favourites</h1>
+            <span className='text-red-500/30'>
+              <AiOutlineHeart />
+            </span>
+          </div>
           {favouriteData &&
             favouriteData.map((data) => (
               <WeatherCard

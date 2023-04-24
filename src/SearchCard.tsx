@@ -40,8 +40,8 @@ const SearchCard: React.FC<SearchCardProps> = ({
     <div
       className={
         isShowing
-          ? `inset-0  overflow-y-auto fixed z-10 top-48 w-full h-full items-center bg-transparent animate-fade-in opacity-100 transform-translate-y-0 transition duration-1000 ease-out`
-          : `inset-0  overflow-y-auto fixed z-10 top-48 w-full h-full items-center bg-transparent animate-fade-out opacity-0 transform-translate-y-10 transition duration-1000 ease-out`
+          ? `inset-0 whitespace-nowrap overflow-auto scrollbar-hide overflow-y-auto fixed z-10 top-48 w-full h-full items-center bg-transparent animate-fade-in opacity-100 transform-translate-y-0 transition duration-1000 ease-out`
+          : `inset-0 whitespace-nowrap overflow-auto scrollbar-hide overflow-y-auto fixed z-10 top-48 w-full h-full items-center bg-transparent animate-fade-out opacity-0 transform-translate-y-10 transition duration-1000 ease-out`
       }
       onClick={show}
     >
