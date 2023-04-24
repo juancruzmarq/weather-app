@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AiOutlineHeart } from 'react-icons/ai';
 import { AiFillHeart } from 'react-icons/ai';
 import Flag from 'react-world-flags';
@@ -6,10 +6,13 @@ import { Day } from './Day';
 import { WeatherResponse } from './interfaces/weather.interface';
 import { Iconos } from './Iconos';
 import { CurrentWeatherResponse } from './interfaces/currentWeather.interface';
+import { Favourites } from './App';
 
 interface WeatherCardProps {
   forecast: WeatherResponse;
   current: CurrentWeatherResponse;
+  show: boolean;
+  setFavourite: (lat: number, lon: number) => void;
 }
 const days = [
   'Sunday',
@@ -30,18 +33,11 @@ interface DaysWeather {
 export const WeatherCard: React.FC<WeatherCardProps> = ({
   forecast,
   current,
+  show,
+  setFavourite,
 }) => {
   const [fav, setFav] = useState(false);
   const [diaOnoche, setDiaOnoche] = useState(false);
-  const [icon, setIcon] = useState<string>();
-  const handleFav = () => {
-    setFav(!fav);
-  };
-  const [today, setToday] = useState(() => {
-    const today = new Date();
-    const day = today.getDay();
-    return days[day];
-  });
   const [daysWeather, setDaysWeather] = useState<DaysWeather[] | undefined>();
 
   function itsDay(timestamp: number) {
@@ -68,7 +64,6 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
   }
 
   useEffect(() => {
-    console.log(current?.weather[0].main);
     setDaysWeather(getDaysOfWeek());
     setDiaOnoche(itsDay(forecast?.list?.[0].dt) || false);
     // invertir la lista
@@ -84,35 +79,56 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
           count: 1, // agregamos un contador para calcular el promedio
         };
       } else {
-        acc[dia].min += item.main.temp_min;
-        acc[dia].max += item.main.temp_max;
-        acc[dia].count += 1;
+        if (item.main.temp_min < acc[dia].min) {
+          acc[dia].min = item.main.temp_min;
+        }
+        if (item.main.temp_max > acc[dia].max) {
+          acc[dia].max = item.main.temp_max;
+        }
       }
       return acc;
     }, {});
-
-    // calcular el promedio para cada día y agregarlo al resultado
-    Object.keys(result).forEach((dia) => {
-      const { min, max, count } = result[dia];
-      result[dia] = {
-        min: min / count,
-        max: max / count,
-      };
-    });
     // agregar el promedio a partir del segundo dia al arreglo de dias de la semana
     setDaysWeather((daysWeather) => {
       return daysWeather?.map((day, index) => {
         return {
           ...day,
-          min: Math.round(result?.[index].min),
-          max: Math.round(result?.[index].max),
+          min: Math.round(result?.[index + 1].min),
+          max: Math.round(result?.[index + 1].max),
         };
       });
     });
+    handleIsFav();
   }, []);
 
+  function handleIsFav() {
+    const favs = window.localStorage.getItem('fav');
+    if (favs) {
+      const favsArray = JSON.parse(favs) as Favourites[];
+      const isFav = favsArray.find(
+        (fav) =>
+          fav.lat === forecast.city.coord.lat &&
+          fav.lon === forecast.city.coord.lon
+      );
+      if (isFav) {
+        setFav(true);
+      } else {
+        setFav(false);
+      }
+    }
+  }
+
+  function handleFav() {
+    setFavourite(forecast.city.coord.lat, forecast.city.coord.lon);
+    handleIsFav();
+  }
+
   return (
-    <div className='grid opacity-40 blur-sm grid-cols-2 p-4  w-full bg-gradient-to-br rounded-md shadow-xl border-r border-b border-white/20 relative'>
+    <div
+      className={`${
+        show ? 'blur-sm opacity-25' : null
+      } grid transition-all delay-300 grid-cols-2 p-4  w-full bg-gradient-to-br rounded-md shadow-xl border-r border-b border-white/20 relative`}
+    >
       <div
         className='w-10 h-10
              rounded-full  absolute top-[-14px] right-[-15px]'
@@ -127,8 +143,8 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
         />
       </div>
       <div className='w-8 h-8 rounded-full text-red-400/40 text-2xl absolute bottom-[10px] right-[10px]'>
-        <button className='w-full h-full' onClick={handleFav}>
-          {fav ? <AiOutlineHeart /> : <AiFillHeart />}
+        <button className='w-full h-full' onClick={() => handleFav()}>
+          {fav ? <AiFillHeart /> : <AiOutlineHeart />}
         </button>
       </div>
       <div className='w-5 h-5 rounded-full text-white/30 absolute bottom-[-13px] left-[-8px] opacity-2'>

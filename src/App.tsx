@@ -1,84 +1,120 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Logo } from './Logo';
 import { weatherApi } from './api/weather';
 import { geocoderApi } from './api/geocoder';
 import { WeatherResponse } from './interfaces/weather.interface';
 import { WeatherCard } from './WeatherCard';
-import { WeatherCardDefault } from './WeatherCardDefault';
 import { CurrentWeatherResponse } from './interfaces/currentWeather.interface';
-import useDebounce from './hooks/useDebounce';
-import useThrottle from './hooks/useThrottle';
-import Flag from 'react-world-flags';
+
 import SearchCard from './SearchCard';
 import { LocationResponse } from './interfaces/location.interface';
 
+export interface Favourites {
+  lat: number;
+  lon: number;
+}
+
+interface FavouriteData {
+  weather: WeatherResponse;
+  current: CurrentWeatherResponse;
+}
+
 function App() {
-  const [fav, setFav] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
+  const [favourites, setFavourites] = useState<Favourites[] | null>(() => {
+    const fav = window.localStorage.getItem('fav');
+    if (fav) {
+      return JSON.parse(fav);
+    }
+    return null;
+  });
   const [results, setResults] = useState<LocationResponse[] | null>(null);
-  const [city, setCity] = useState<LocationResponse | null>(null);
-  const [parisForecastData, setParisForecastData] =
-    useState<WeatherResponse | null>(null);
-  const [paris, setParis] = useState<CurrentWeatherResponse | null>(null);
-  const [query, setQuery] = useState<string>('');
-
-  const [newYorkForecastData, setNewYorkForecastData] =
-    useState<WeatherResponse | null>(null);
-  const [newYork, setNewYork] = useState<CurrentWeatherResponse | null>(null);
-
-  const [buenosAiresForecastData, setBuenosAiresForecastData] =
-    useState<WeatherResponse | null>(null);
-  const [buenosAires, setBuenosAires] = useState<CurrentWeatherResponse | null>(
+  const [showSearch, setShowSearch] = useState(false);
+  const [selectedCity, setSelectedCity] = useState<WeatherResponse | null>(
     null
   );
+  const [forecastCity, setForecastCity] =
+    useState<CurrentWeatherResponse | null>(null);
+  const [favouriteData, setFavouriteData] = useState<FavouriteData[] | null>(
+    null
+  );
+  const [query, setQuery] = useState<string>('');
 
   const handleSearch = async () => {
     const results = await geocoderApi.getCity(query, 7);
-    console.log(results.data);
     setResults(results.data);
+    setShowSearch(true);
+    setQuery('');
+  };
+
+  const handleShow = () => {
+    setShowSearch(!showSearch);
+    setResults(null);
+  };
+
+  const handleSetFavourite = (lat: number, lon: number) => {
+    const favs = window.localStorage.getItem('fav');
+    if (favs) {
+      const favsParsed = JSON.parse(favs);
+      favsParsed.find((fav: Favourites) => fav.lat === lat && fav.lon === lon)
+        ? favsParsed.splice(
+            favsParsed.findIndex(
+              (fav: Favourites) => fav.lat === lat && fav.lon === lon
+            ),
+            1
+          )
+        : favsParsed.push({ lat, lon });
+      window.localStorage.setItem('fav', JSON.stringify(favsParsed));
+      setFavourites(favsParsed);
+    } else {
+      const favs: Favourites[] = [];
+      favs.push({ lat, lon });
+      window.localStorage.setItem('fav', JSON.stringify(favs));
+      setFavourites(favs);
+    }
+  };
+
+  const handleSetCity = async (lat: number, lon: number) => {
+    setSelectedCity(null);
+    setForecastCity(null);
+    const currentWeather = await weatherApi.getCurrentWeather(lat, lon);
+    const weather = await weatherApi.getWeather(lat, lon);
+    setSelectedCity(weather.data);
+    setForecastCity(currentWeather.data);
+    setShowSearch(false);
+  };
+
+  const callApi = async () => {
+    try {
+      favourites &&
+        favourites.map(async (fav) => {
+          const { data: weather } = await weatherApi.getWeather(
+            fav.lat,
+            fav.lon
+          );
+          const { data: current } = await weatherApi.getCurrentWeather(
+            fav.lat,
+            fav.lon
+          );
+          setFavouriteData((prev) => {
+            // dont add if already exists
+            if (
+              prev &&
+              prev.find((favData) => favData.current.id === current.id)
+            ) {
+              return prev;
+            }
+            return [...(prev || []), { weather, current }];
+          });
+        });
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   useEffect(() => {
-    const callApi = async () => {
-      try {
-        const parisForecast = await weatherApi.getWeather(
-          48.8534951,
-          2.3483915
-        );
-        setParisForecastData(parisForecast.data);
-
-        const parisCurrent = await weatherApi.getCurrentWeather(
-          48.8534951,
-          2.3483915
-        );
-        setParis(parisCurrent.data);
-
-        const newYorkForecast = await weatherApi.getWeather(40.71, -74.01);
-        setNewYorkForecastData(newYorkForecast.data);
-
-        const newYorkCurrent = await weatherApi.getCurrentWeather(
-          40.71,
-          -74.01
-        );
-        setNewYork(newYorkCurrent.data);
-        console.log(newYorkCurrent.data);
-
-        const buenosAiresForecast = await weatherApi.getWeather(
-          -34.9206797,
-          -57.9537638
-        );
-        setBuenosAiresForecastData(buenosAiresForecast.data);
-        const BuenosAiresData = await weatherApi.getCurrentWeather(
-          -34.9206797,
-          -57.9537638
-        );
-        setBuenosAires(BuenosAiresData.data);
-      } catch (error) {
-        console.log(error);
-      }
-    };
-    // callApi();
+    callApi();
   }, []);
+
   return (
     <>
       <div className='flex justify-center min-h-screen w-screen bg-gradient-to-tl from-slate-900 via-slate-800 to-slate-900 bg-slate-200 '>
@@ -92,7 +128,7 @@ function App() {
               onChange={(e) => setQuery(e.target.value)}
               type='text'
               placeholder='Search for a city'
-              className='text-md rounded-md w-3/5 p-2 border-b border-r font-thin border-gray-300/20 shadow-xl text-white bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 placeholder:text-white/30 '
+              className='focus:outline-1 focus:outline-gray-400/20 focus:border-none  text-md rounded-md w-3/5 p-2 border-b border-r font-thin border-gray-300/20 shadow-xl text-white bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 placeholder:text-white/30 '
             />
             <button
               onClick={handleSearch}
@@ -101,26 +137,35 @@ function App() {
               Search
             </button>
           </div>
-          {results && <SearchCard results={results} setCity={setCity} />}
-
-          {parisForecastData && paris ? (
-            <WeatherCard forecast={parisForecastData} current={paris} />
-          ) : (
-            <WeatherCardDefault />
-          )}
-          {newYorkForecastData && newYork ? (
-            <WeatherCard forecast={newYorkForecastData} current={newYork} />
-          ) : (
-            <WeatherCardDefault />
-          )}
-          {buenosAiresForecastData && buenosAires ? (
-            <WeatherCard
-              forecast={buenosAiresForecastData}
-              current={buenosAires}
+          {results && showSearch && (
+            <SearchCard
+              results={results}
+              setCity={handleSetCity}
+              show={handleShow}
+              isShowing={showSearch}
             />
-          ) : (
-            <WeatherCardDefault />
           )}
+
+          {selectedCity && forecastCity ? (
+            <WeatherCard
+              key={selectedCity.cod}
+              forecast={selectedCity}
+              current={forecastCity}
+              setFavourite={handleSetFavourite}
+              show={showSearch}
+            />
+          ) : null}
+
+          {favouriteData &&
+            favouriteData.map((data) => (
+              <WeatherCard
+                key={data.weather.cod}
+                forecast={data.weather}
+                current={data.current}
+                setFavourite={handleSetFavourite}
+                show={showSearch}
+              />
+            ))}
         </div>
       </div>
     </>
