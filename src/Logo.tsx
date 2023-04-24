@@ -1,5 +1,3 @@
-import React from 'react';
-
 export const Logo = () => {
   return (
     <div className='w-20 h-20 bg-gradient-to-r from-slate-800 via-slate-600 to-slate-800 rounded-md relative  border-b border-r border-white/10'>
