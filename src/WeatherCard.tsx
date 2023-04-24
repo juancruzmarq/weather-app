@@ -127,7 +127,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
     <div
       className={`${
         show ? 'blur-sm opacity-25' : null
-      } grid transition-all delay-300 grid-cols-2 p-4  w-full bg-gradient-to-br rounded-md shadow-xl border-r border-b border-white/20 relative`}
+      } grid transition-all delay-300 grid-cols-2 p-4  w-full bg-gradient-to-br rounded-md shadow-xl border-r border-b border-white/10 relative shadow-gray-900/40`}
     >
       <div
         className='w-10 h-10
