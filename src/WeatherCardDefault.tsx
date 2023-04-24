@@ -1,14 +1,10 @@
-import { useState } from 'react';
 import { AiOutlineHeart } from 'react-icons/ai';
-import { AiFillHeart } from 'react-icons/ai';
 import Flag from 'react-world-flags';
 import { Day } from './Day';
 import { Iconos } from './Iconos';
 
 const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
 export const WeatherCardDefault = () => {
-  const [fav, setFav] = useState(false);
-
   return (
     <div className='grid grid-cols-2 p-4 blur-md w-full bg-gradient-to-br rounded-md shadow-xl border-r border-b border-white/20 relative'>
       <div
@@ -19,7 +15,7 @@ export const WeatherCardDefault = () => {
       </div>
       <div className='w-8 h-8 rounded-full text-red-400/40 text-2xl absolute bottom-[10px] right-[10px]'>
         <button className='w-full h-full'>
-          {fav ? <AiOutlineHeart /> : <AiFillHeart />}
+          <AiOutlineHeart />
         </button>
       </div>
       <div className='w-5 h-5 rounded-full text-white/30 absolute bottom-[-13px] left-[-8px] opacity-2'>
