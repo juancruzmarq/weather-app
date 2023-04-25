@@ -32,7 +32,6 @@ const SearchCard: React.FC<SearchCardProps> = ({
   };
 
   useEffect(() => {
-    console.log(results);
     setFilteredResults(removeDuplicates(results));
   }, [results]);
 

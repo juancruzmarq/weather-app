@@ -8,11 +8,19 @@ import { Iconos } from './Iconos';
 import { CurrentWeatherResponse } from './interfaces/currentWeather.interface';
 import { FavouriteData, Favourites } from './App';
 
+interface TemperatureData {
+  [key: string]: {
+    min: number;
+    max: number;
+  };
+}
+
 interface WeatherCardProps {
   forecast: WeatherResponse;
   current: CurrentWeatherResponse;
   show: boolean;
   setFavourite: (data: FavouriteData) => void;
+  favs: Favourites[] | null;
 }
 const days = [
   'Sunday',
@@ -35,6 +43,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
   current,
   show,
   setFavourite,
+  favs,
 }) => {
   const [fav, setFav] = useState(false);
   const [diaOnoche, setDiaOnoche] = useState(false);
@@ -63,53 +72,65 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
     return daysResult;
   }
 
+  function obtenerTemps() {
+    const currentDate = new Date();
+
+    const filteredForecasts = forecast?.list.filter((forecast) => {
+      const date = new Date(forecast.dt * 1000);
+      return date.getDate() !== currentDate.getDate();
+    });
+
+    const temperatureData: TemperatureData = {};
+
+    filteredForecasts?.forEach((forecast) => {
+      const dia = days[new Date(forecast.dt * 1000).getDay()];
+      const max = forecast?.main.temp_max;
+      const min = forecast?.main.temp_min;
+      if (temperatureData[dia]) {
+        if (temperatureData[dia].max < max) {
+          temperatureData[dia].max = max;
+        }
+        if (temperatureData[dia].min > min) {
+          temperatureData[dia].min = min;
+        }
+      } else {
+        temperatureData[dia] = {
+          max,
+          min,
+        };
+      }
+    });
+    return temperatureData;
+  }
+
   useEffect(() => {
     setDaysWeather(getDaysOfWeek());
+    const daysOfweek = getDaysOfWeek();
     setDiaOnoche(itsDay(forecast?.list?.[0].dt) || false);
-    // invertir la lista
-    const list = forecast?.list?.reverse();
-    // obtener el promedio de la temperatura minima y maxima de cada dia
-    const result = list?.reduce((acc: any, item) => {
-      const fecha = new Date(item.dt * 1000);
-      const dia = fecha.getDay();
-      if (!acc[dia]) {
-        acc[dia] = {
-          min: item.main.temp_min,
-          max: item.main.temp_max,
-          count: 1, // agregamos un contador para calcular el promedio
-        };
-      } else {
-        if (item.main.temp_min < acc[dia].min) {
-          acc[dia].min = item.main.temp_min;
-        }
-        if (item.main.temp_max > acc[dia].max) {
-          acc[dia].max = item.main.temp_max;
-        }
-      }
-      return acc;
-    }, {});
-    // agregar el promedio a partir del segundo dia al arreglo de dias de la semana
-    setDaysWeather((daysWeather) => {
-      return daysWeather?.map((day, index) => {
-        return {
-          ...day,
-          min: Math.round(result?.[index + 1].min),
-          max: Math.round(result?.[index + 1].max),
-        };
-      });
+    const temps = obtenerTemps();
+    const resultsMap = daysOfweek.map((day) => {
+      return {
+        ...day,
+        min: Math.round(temps[day.day].min),
+        max: Math.round(temps[day.day].max),
+      };
     });
+
+    setDaysWeather(resultsMap);
+    // Check if the current city is in the favourites
     handleIsFav();
   }, []);
 
   function handleIsFav() {
-    const favs = JSON.parse(localStorage.getItem('fav') || '[]');
-    const found = favs.find((fav: Favourites) => {
-      return fav.lat === current?.coord.lat && fav.lon === current?.coord.lon;
-    });
-    if (found) {
-      setFav(true);
-    } else {
-      setFav(false);
+    if (favs) {
+      const isFav = favs.find(
+        (fav) =>
+          fav.lat === forecast?.city.coord.lat &&
+          fav.lon === forecast?.city.coord.lon
+      );
+      if (isFav) {
+        setFav(true);
+      }
     }
   }
 
@@ -151,7 +172,12 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
       </div>
       <div className='grid grid-cols-2 grid-rows-5 text-xs font-extralight border-r border-white/20 pr-4'>
         {daysWeather?.map((day, index) => (
-          <Day key={index} day={day.day} min={day.min} max={day.max} />
+          <Day
+            key={index}
+            day={day.day}
+            min={day.min ? day.min : 0}
+            max={day.max ? day.max : 0}
+          />
         ))}
       </div>
       <div className='grid grid-rows-4 grid-cols-1 justify-center text-center'>

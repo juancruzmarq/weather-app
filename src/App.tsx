@@ -20,13 +20,7 @@ export interface FavouriteData {
 }
 
 function App() {
-  const [favourites, setFavourites] = useState<Favourites[] | null>(() => {
-    const fav = window.localStorage.getItem('fav');
-    if (fav) {
-      return JSON.parse(fav);
-    }
-    return null;
-  });
+  const [favourites, setFavourites] = useState<Favourites[] | null>(null);
   const [results, setResults] = useState<LocationResponse[] | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [selectedCity, setSelectedCity] = useState<WeatherResponse | null>(
@@ -53,16 +47,14 @@ function App() {
   };
 
   const handleSetFavourite = (data: FavouriteData) => {
-    const favs = window.localStorage.getItem('fav');
-    if (favs) {
-      const favsParsed: Favourites[] = JSON.parse(favs);
-      const exists = favsParsed.find(
+    if (favourites) {
+      const exists = favourites.find(
         (fav) =>
           fav.lat === data.current.coord.lat &&
           fav.lon === data.current.coord.lon
       );
       if (!exists) {
-        const newFav = [...favsParsed, data.current.coord];
+        const newFav = [...favourites, data.current.coord];
         window.localStorage.setItem('fav', JSON.stringify(newFav));
         setFavourites(newFav);
         setFavouriteData((prev) => {
@@ -72,7 +64,7 @@ function App() {
           return [data];
         });
       } else {
-        const newFav = favsParsed.filter(
+        const newFav = favourites.filter(
           (fav) =>
             fav.lat !== data.current.coord.lat &&
             fav.lon !== data.current.coord.lon
@@ -135,6 +127,8 @@ function App() {
   };
 
   useEffect(() => {
+    const favs = JSON.parse(window.localStorage.getItem('fav') || '[]');
+    setFavourites(favs);
     callApi();
   }, []);
 
@@ -177,6 +171,7 @@ function App() {
               forecast={selectedCity}
               current={forecastCity}
               setFavourite={handleSetFavourite}
+              favs={favourites}
               show={showSearch}
             />
           ) : null}
@@ -193,6 +188,7 @@ function App() {
                 forecast={data.weather}
                 current={data.current}
                 setFavourite={handleSetFavourite}
+                favs={favourites}
                 show={showSearch}
               />
             ))}
