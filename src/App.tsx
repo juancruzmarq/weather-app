@@ -20,7 +20,13 @@ export interface FavouriteData {
 }
 
 function App() {
-  const [favourites, setFavourites] = useState<Favourites[] | null>(null);
+  const [favourites, setFavourites] = useState<Favourites[] | null>(() => {
+    const fav = JSON.parse(window.localStorage.getItem('fav') || '[]');
+    if (fav) {
+      return fav;
+    }
+    return null;
+  });
   const [results, setResults] = useState<LocationResponse[] | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [selectedCity, setSelectedCity] = useState<WeatherResponse | null>(
