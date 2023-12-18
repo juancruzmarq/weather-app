@@ -8,6 +8,7 @@ import { CurrentWeatherResponse } from './interfaces/currentWeather.interface';
 import { AiOutlineHeart } from 'react-icons/ai';
 import SearchCard from './SearchCard';
 import { LocationResponse } from './interfaces/location.interface';
+import { Iconos } from './Iconos';
 
 export interface Favourites {
   lat: number;
@@ -27,6 +28,7 @@ function App() {
     }
     return null;
   });
+  const [diaOnoche, setDiaOnoche] = useState(false);
   const [results, setResults] = useState<LocationResponse[] | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [selectedCity, setSelectedCity] = useState<WeatherResponse | null>(
@@ -132,16 +134,28 @@ function App() {
     }
   };
 
+  function itsDay(timestamp: number) {
+    const fecha = new Date(timestamp);
+    const hora = fecha.getHours();
+    return hora >= 6 && hora <= 18;
+  }
+
   useEffect(() => {
     const favs = JSON.parse(window.localStorage.getItem('fav') || '[]');
     setFavourites(favs);
     callApi();
   }, []);
 
+  useEffect(() => {
+    setDiaOnoche(itsDay(selectedCity?.list?.[0].dt as number) || false);
+  }, [selectedCity, forecastCity]);
+
   return (
     <>
-      <div className='whitespace-nowrap overflow-auto scrollbar-hide flex justify-center min-h-screen max-h-screen w-screen bg-gradient-to-tl from-slate-900 via-slate-800 to-slate-900 bg-slate-200 '>
-        <div className='max-w-md bg-none flex flex-col m-5 w-full rounded-xl gap-4'>
+      <div
+        className={`z-20 whitespace-nowrap overflow-auto scrollbar-hide flex justify-center min-h-screen max-h-screen w-screen bg-gradient-to-tl from-slate-900 via-slate-800 to-slate-900 bg-slate-200 `}
+      >
+        <div className='z-10 max-w-md bg-none flex flex-col m-5 w-full rounded-xl gap-4'>
           <div className='flex flex-row justify-center p-2 bg-gradient-to-tl from-slate-900 via-slate-800 to-slate-900 h-min w-full rounded-xl  items-center gap-4 border-l border-r border-white/10 shadow-xl'>
             <Logo /> <h1 className='text-4xl text-white font-thin'>Weather</h1>
           </div>
@@ -170,7 +184,6 @@ function App() {
               isShowing={showSearch}
             />
           )}
-
           {selectedCity && forecastCity ? (
             <WeatherCard
               key={selectedCity.cod}
@@ -199,6 +212,21 @@ function App() {
               />
             ))}
         </div>
+        {selectedCity && forecastCity && (
+          <div className='z-0 absolute top-0 left-0 w-full h-full transition-all delay-300'>
+            <img
+              className='object-cover h-full w-full blur-sm opacity-10 transition-all delay-300'
+              src={
+                diaOnoche
+                  ? Iconos[forecastCity?.weather[0].main as keyof typeof Iconos]
+                      .day
+                  : Iconos[forecastCity?.weather[0].main as keyof typeof Iconos]
+                      .night
+              }
+              alt={forecastCity?.weather[0].main}
+            />
+          </div>
+        )}
       </div>
     </>
   );
